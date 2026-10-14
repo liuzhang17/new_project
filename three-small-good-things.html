@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Three Small Good Things</title>
+<style>
+  :root{--bg:#f7f4ef;--card:#fff;--ink:#33302c;--soft:#6f6a63;--accent:#7a9e7e;--line:#e4ded4}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink);line-height:1.5}
+  .wrap{max-width:680px;margin:0 auto;padding:24px 18px 60px}
+  header{text-align:center;margin-bottom:18px}
+  h1{font-size:1.7rem;margin:.2rem 0}
+  h2{font-size:1.15rem;margin-top:0}
+  .sub{color:var(--soft);font-size:.98rem}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;margin-bottom:16px;box-shadow:0 6px 18px rgba(0,0,0,.05)}
+  label{display:block;font-weight:600;margin:14px 0 6px}
+  input,textarea{width:100%;border:1px solid var(--line);border-radius:12px;padding:12px;font:inherit;background:#fffdf9}
+  textarea{min-height:70px;resize:vertical}
+  button{border:0;border-radius:999px;padding:12px 18px;font:inherit;font-weight:600;cursor:pointer}
+  .primary{background:var(--accent);color:white}
+  .ghost{background:transparent;border:1px solid var(--line);color:var(--soft)}
+  .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+  .prompt{background:#eef4ee;border-radius:12px;padding:12px 14px;margin-top:10px;color:#3f5c44}
+  .entries{display:grid;gap:10px;margin-top:12px}
+  .entry{border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:#fffdf9}
+  .entry-date{font-size:.85rem;color:var(--soft);font-weight:700;margin-bottom:6px}
+  .entry ul{margin:6px 0 0;padding-left:18px}
+  .muted{color:var(--soft);font-size:.9rem}
+  .footer{text-align:center;color:var(--soft);font-size:.85rem;margin-top:24px}
+  .crisis{background:#fff1f1;border:1px solid #f3c9c9;color:#7d2f2f;border-radius:14px;padding:14px;font-size:.9rem}
+  .care{background:#f2f7f2;border-color:#d8e6d8;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🌿 Three Small Good Things</h1>
+    <p class="sub">A gentle daily practice. No pressure. One thing counts.</p>
+  </header>
+
+  <div class="card">
+    <div class="prompt" id="prompt">Today’s prompt: What felt even 1% easier today?</div>
+
+    <label for="t1">Small good thing 1</label>
+    <input id="t1" placeholder="Warm tea, a text from someone, sunlight…">
+
+    <label for="t2">Small good thing 2 <span class="muted">(optional)</span></label>
+    <input id="t2" placeholder="Anything at all counts.">
+
+    <label for="t3">Small good thing 3 <span class="muted">(optional)</span></label>
+    <input id="t3" placeholder="No need to explain.">
+
+    <label for="hard">One thing that was hard today <span class="muted">(optional)</span></label>
+    <textarea id="hard" placeholder="You do not have to make it positive."></textarea>
+
+    <label for="kind">One kind thing I did for myself <span class="muted">(optional)</span></label>
+    <input id="kind" placeholder="Rested, ate, showered, said no, asked for help…">
+
+    <div class="row">
+      <button type="button" class="primary" id="saveBtn">Save today</button>
+      <button type="button" class="ghost" id="promptBtn">Another prompt</button>
+    </div>
+    <p class="muted" id="status"></p>
+  </div>
+
+  <div class="card">
+    <h2>History</h2>
+    <p class="muted">Your saved days appear here, newest first. They stay on this device.</p>
+    <div id="history" class="entries"></div>
+    <div class="row">
+      <button type="button" class="ghost" id="copyBtn">Copy all entries</button>
+      <button type="button" class="ghost" id="clearBtn">Clear everything</button>
+    </div>
+  </div>
+
+  <div class="card care">
+    <h2>You are cared about 💚</h2>
+    <p>You helped me more than you probably realize. I’m really glad you’re in my life, and I care about you—not because you have to be productive, happy, or okay, but simply because you’re you.</p>
+    <p class="muted">On the hard days, please remember: you don’t have to carry everything alone. I’m here.</p>
+  </div>
+
+  <div class="crisis">
+    <b>If today feels unsafe:</b> You deserve support right now. In Canada, call or text <b>988</b> for suicide crisis support, or call <b>911</b> if there is immediate danger. This app is not a substitute for professional care.
+  </div>
+
+  <p class="footer">Saved privately on this device only. Nothing is uploaded.</p>
+</div>
+
+<script>
+(function(){
+  var PROMPTS = [
+    "What felt even 1% easier today?",
+    "What was less awful than expected?",
+    "What did you tolerate today?",
+    "What small comfort did you notice?",
+    "What did your body help you do today?",
+    "What sound, smell, taste, or texture was okay?",
+    "What did someone do—or not do—that helped?",
+    "What are you glad is over for today?",
+    "What tiny thing went right?",
+    "What would future-you appreciate that you did today?"
+  ];
+  var STORAGE_KEY = "threeSmallGoodThings";
+
+  function el(id){ return document.getElementById(id); }
+
+  function getEntries(){
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      var parsed = raw ? JSON.parse(raw) : [];
+      return Object.prototype.toString.call(parsed) === "[object Array]" ? parsed : [];
+    } catch (err) {
+      return [];
+    }
+  }
+
+  function saveEntries(entries){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+  }
+
+  function escapeText(value){
+    return String(value == null ? "" : value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function dateLabel(){
+    return new Date().toLocaleDateString(undefined, {
+      weekday: "long", year: "numeric", month: "long", day: "numeric"
+    });
+  }
+
+  function renderHistory(){
+    var entries = getEntries();
+    var box = el("history");
+    box.innerHTML = "";
+
+    if (entries.length === 0) {
+      box.innerHTML = '<p class="muted">No entries yet. One small thing is enough.</p>';
+      return;
+    }
+
+    for (var i = entries.length - 1; i >= 0; i--) {
+      var entry = entries[i];
+      var html = '<div class="entry">';
+      html += '<div class="entry-date">' + escapeText(entry.date) + '</div>';
+      html += "<ul>";
+      for (var j = 0; j < entry.items.length; j++) {
+        html += "<li>" + escapeText(entry.items[j]) + "</li>";
+      }
+      html += "</ul>";
+      if (entry.hard) html += '<p class="muted"><b>Hard:</b> ' + escapeText(entry.hard) + "</p>";
+      if (entry.kind) html += '<p class="muted"><b>Kind to self:</b> ' + escapeText(entry.kind) + "</p>";
+      html += "</div>";
+      box.insertAdjacentHTML("beforeend", html);
+    }
+  }
+
+  function randomPrompt(){
+    var index = Math.floor(Math.random() * PROMPTS.length);
+    el("prompt").textContent = "Today’s prompt: " + PROMPTS[index];
+  }
+
+  function saveToday(){
+    var items = [];
+    var fields = ["t1", "t2", "t3"];
+    for (var i = 0; i < fields.length; i++) {
+      var value = el(fields[i]).value.trim();
+      if (value) items.push(value);
+    }
+
+    var hard = el("hard").value.trim();
+    var kind = el("kind").value.trim();
+
+    if (items.length === 0 && !hard && !kind) {
+      el("status").textContent = "That’s okay—nothing needs to be saved today.";
+      return;
+    }
+
+    var entries = getEntries();
+    entries.push({
+      date: dateLabel(),
+      items: items,
+      hard: hard,
+      kind: kind,
+      savedAt: new Date().toISOString()
+    });
+    saveEntries(entries);
+
+    el("t1").value = "";
+    el("t2").value = "";
+    el("t3").value = "";
+    el("hard").value = "";
+    el("kind").value = "";
+    el("status").textContent = "Saved. You did enough.";
+    renderHistory();
+  }
+
+  function copyAll(){
+    var entries = getEntries();
+    if (entries.length === 0) {
+      el("status").textContent = "No entries to copy yet.";
+      return;
+    }
+
+    var lines = [];
+    for (var i = 0; i < entries.length; i++) {
+      var entry = entries[i];
+      lines.push(entry.date);
+      for (var j = 0; j < entry.items.length; j++) lines.push("• " + entry.items[j]);
+      if (entry.hard) lines.push("Hard: " + entry.hard);
+      if (entry.kind) lines.push("Kind to self: " + entry.kind);
+      lines.push("");
+    }
+
+    var text = lines.join("\n").trim();
+
+    function fallbackCopy(){
+      var area = document.createElement("textarea");
+      area.value = text;
+      area.style.position = "fixed";
+      area.style.opacity = "0";
+      document.body.appendChild(area);
+      area.select();
+      try { document.execCommand("copy"); el("status").textContent = "Copied."; }
+      catch (err) { el("status").textContent = "Copy did not work. You can screenshot your history."; }
+      document.body.removeChild(area);
+    }
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function(){
+        el("status").textContent = "Copied.";
+      }, fallbackCopy);
+    } else {
+      fallbackCopy();
+    }
+  }
+
+  function clearAll(){
+    var confirmed = window.confirm("Delete all saved entries from this device?");
+    if (confirmed) {
+      localStorage.removeItem(STORAGE_KEY);
+      renderHistory();
+      el("status").textContent = "Cleared.";
+    }
+  }
+
+  el("saveBtn").addEventListener("click", saveToday);
+  el("promptBtn").addEventListener("click", randomPrompt);
+  el("copyBtn").addEventListener("click", copyAll);
+  el("clearBtn").addEventListener("click", clearAll);
+
+  randomPrompt();
+  renderHistory();
+})();
+</script>
+</body>
+</html>
